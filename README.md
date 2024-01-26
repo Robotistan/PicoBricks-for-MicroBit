@@ -6,9 +6,9 @@
 [![Creative Commons ][cc-by-nc-sa-shield]][cc-by-nc-sa] 
 
 
-# Make, Run, Split, Merge
+# Dream, Code, Play
 
-<img src="https://ksr-ugc.imgix.net/assets/036/949/333/19d4e8370190a56be1389832d344876f_original.jpg?ixlib=rb-4.0.2&w=680&fit=max&v=1649673985&gif-q=50&q=92&s=bf2c8ff527cd06c6e021dbbebd50887b" width="600" height="400">
+<img src="https://github.com/ozerngg/PicoBricks-for-MicroBit/assets/112697142/d075183d-7668-44ad-8d5a-b173200cf5c7" width="600" height="400">
 
 
 
