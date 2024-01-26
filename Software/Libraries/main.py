@@ -19,6 +19,11 @@ initialize()
 #Neopixel
 np = neopixel.NeoPixel(RGB_pin, num_leds)
 
+#Relay
+Relay_pin.write_digital(1)
+sleep(2000)
+Relay_pin.write_digital(0)
+
 #MotorDriver
 #angle must be between 0 and 90
 servomotor(2,90)
@@ -52,8 +57,3 @@ while True:
     #Motion Sensor
     read_motion = Motion_pin.read_digital()
     print(read_motion)
-
-    #Relay
-    Relay_pin.write_digital(1)
-    sleep(2000)
-    Relay_pin.write_digital(0)
