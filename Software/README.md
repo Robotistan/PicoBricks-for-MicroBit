@@ -1,4 +1,11 @@
 ## Development Environments
+
+ - ##### [Microsoft MakeCode](https://www.microsoft.com/en-us/makecode "Microsoft MakeCode")
+ ![](https://github.com/ozerngg/PicoBricks-for-MicroBit/assets/112697142/a0a4c22a-2702-4a04-b124-5a84609860b3)
+
+ Microsoft MakeCode is a free online learn-to-code platform where anyone can build games, code devices, and mod Minecraft!
+
+ 
  - ##### [MicroBlocks Block Programming Language](http://microblocks.fun/ "MicroBlocks Block Programming Language")
  ![](https://microblocks.fun/assets/img/logos/MicroBlocks.svg)
  
