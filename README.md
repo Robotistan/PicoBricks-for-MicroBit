@@ -12,16 +12,16 @@
 
 
 
-## [Pico Bricks](https://shop.robotistan.com/products/pico-bricks "Heading link")
- ##### Pico Bricks is a fantastic project development kit for STEM educators and makers of all levels.
+## [PicoBricks for MicroBit](https://shop.robotistan.com/products/pico-bricks "Heading link")
+ ##### PicoBricks is a fantastic project development kit for STEM educators and makers of all levels.
 
 <img src="https://github.com/ozerngg/PicoBricks-for-MicroBit/assets/112697142/d102f4d2-b7f2-46c7-9ae2-4c52722a9b25" width="620">
  
-##### Pico Bricks is an electronic development board which is designed for use in maker projects. With 10 detachable modules included, Pico Bricks can be used to create a wide variety of projects. It also includes a protoboard that you can use to add your own modules!
+##### PicoBricks is an electronic development board which is designed for use in maker projects. With 10 detachable modules included, Pico Bricks can be used to create a wide variety of projects. It also includes a protoboard that you can use to add your own modules!
 
 ![](https://robotistan.com/Data/EditorFiles/Shopify/3.png)
 
- ##### Once you have explored the Pico Bricks modules, you may want to use some of them in a project. Although Pico Bricks is compact, there's no need to build the entire thing into your project. By detaching the Pico Bricks modules, you can connect just the modules you need using cables with standard, easy-to-use Grove connectors. After dividing the Pico Bricks into modules, you can easily reassemble them again on the specially designed base plate. 
+ ##### Once you have explored the PicoBricks modules, you may want to use some of them in a project. Although Pico Bricks is compact, there's no need to build the entire thing into your project. By detaching the PicoBricks modules, you can connect just the modules you need using cables with standard, easy-to-use Grove connectors. After dividing the Pico Bricks into modules, you can easily reassemble them again on the specially designed base plate. 
  
 <img src="https://github.com/ozerngg/PicoBricks-for-MicroBit/assets/112697142/335368d2-181b-4281-8e0c-0fc68c15c043" width="620">
 
