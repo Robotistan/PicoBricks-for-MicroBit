@@ -30,21 +30,11 @@
 
 ## Repository Contents
 
-- ##### [Bootloader](https://github.com/Robotistan/PicoBricks/tree/main/Bootloader)
 - ##### [Bricks](https://github.com/Robotistan/PicoBricks/tree/main/Bricks "Heading link")
-- ##### [Documents](https://github.com/Robotistan/PicoBricks/tree/main/Documents "Heading link")
-   * [Datasheets](https://github.com/Robotistan/PicoBricks/tree/main/Documents/Datasheets)
-   * [E-Book](https://github.com/Robotistan/PicoBricks/tree/main/Documents/PicoBricks%20ebook)
-   * [STL Files](https://github.com/Robotistan/PicoBricks/tree/main/Documents/STL%20Files)
-- ##### [Education](https://github.com/Robotistan/PicoBricks/tree/main/Education) 
-   * [Example Code](https://github.com/Robotistan/PicoBricks/tree/main/Education/Example%20Code)
-   * [MicroBlocks Test Code](https://github.com/Robotistan/PicoBricks/tree/main/Education/Microblocks%20Test%20Code)
+- ##### [STL Files](https://github.com/Robotistan/PicoBricks/tree/main/Documents/STL%20Files)
+
 - ##### [Software](https://github.com/Robotistan/PicoBricks/tree/main/Software) 
    * [Activities](https://github.com/Robotistan/PicoBricks/tree/main/Software/Activities)
-   * [Examples](https://github.com/Robotistan/PicoBricks/tree/main/Software/Examples)
-   * [Images Library](https://github.com/Robotistan/PicoBricks/tree/main/Software/Images%20Libraries)
-   * [Pre-Installed Code](https://github.com/Robotistan/PicoBricks/tree/main/Software/Pre-Installed%20Code)
-   * [lib](https://github.com/Robotistan/PicoBricks/tree/main/Software/lib)
 
 
 ## License
