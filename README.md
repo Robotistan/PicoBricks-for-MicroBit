@@ -30,11 +30,10 @@
 
 ## Repository Contents
 
-- ##### [Bricks](https://github.com/Robotistan/PicoBricks/tree/main/Bricks "Heading link")
-- ##### [STL Files](https://github.com/Robotistan/PicoBricks/tree/main/Documents/STL%20Files)
-
-- ##### [Software](https://github.com/Robotistan/PicoBricks/tree/main/Software) 
-   * [Activities](https://github.com/Robotistan/PicoBricks/tree/main/Software/Activities)
+- ##### [STL Files](https://github.com/Robotistan/PicoBricks-for-MicroBit/tree/main/STL%20Files)
+- ##### [Software](https://github.com/Robotistan/PicoBricks-for-MicroBit/tree/main/Software) 
+   * [Activities](https://github.com/Robotistan/PicoBricks-for-MicroBit/tree/main/Software/Activities)
+   * [Libraries](https://github.com/Robotistan/PicoBricks-for-MicroBit/tree/main/Software/Libraries)
 
 
 ## License
