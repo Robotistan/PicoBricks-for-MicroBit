@@ -32,6 +32,7 @@ servomotor(2,90)
 dcmotor(1,255,1)
 
 while True:
+    #OLED
     clear_oled()
     add_text(0, 0, "PicoBricks")
     sleep(1000)
