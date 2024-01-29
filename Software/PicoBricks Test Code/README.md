@@ -1,6 +1,6 @@
-## Development Environments
+## Development Environments 
 
- - ##### [Microsoft MakeCode](https://www.microsoft.com/en-us/makecode "Microsoft MakeCode")
+ - ##### [Microsoft MakeCode](https://www.microsoft.com/en-us/makecode "Microsoft MakeCode") 
  ![](https://github.com/ozerngg/PicoBricks-for-MicroBit/assets/112697142/a0a4c22a-2702-4a04-b124-5a84609860b3)
 
  Microsoft MakeCode is a free online learn-to-code platform where anyone can build games, code devices, and mod Minecraft!
@@ -8,11 +8,12 @@
  
  - ##### [MicroBlocks Block Programming Language](http://microblocks.fun/ "MicroBlocks Block Programming Language")
  ![](https://microblocks.fun/assets/img/logos/MicroBlocks.svg)
+
  
 MicroBlocks is a free, Scratch-like blocks programming language for learning physical computing with educational microcontroller boards such as the micro:bit, Adafruit Circuit Playground Express, and many others. MicroBlocks is a live environment. Click on a block and it runs immediately, right on the board. Try out commands. See and graph sensor values in real time. No more waiting for code to compile and download.
  - ##### [Thonny (MicroPython) IDE for Beginners](http://thonny.org/ "Thonny (MicroPython) IDE for Beginners")
-  ![](https://upload.wikimedia.org/wikipedia/commons/e/e2/Thonny_logo.png)
- 
+  ![](https://github.com/Robotistan/PicoBricks-for-MicroBit/assets/112697142/974138a8-56f7-4aab-9d52-a8579de34c34)
+
 At the heart of Picobricks is the Raspberry Pi Pico. The Thonny Raspberry Pi is a great choice for coding Pico and therefore Picobricks.
  - ##### [Arduino IDE ](http://www.arduino.cc/en/software "Arduino IDE ")
  ![](https://images.g2crowd.com/uploads/product/image/social_landscape/social_landscape_690e90c5de441951cf5715b08b1d5420/arduino-ide.png)
