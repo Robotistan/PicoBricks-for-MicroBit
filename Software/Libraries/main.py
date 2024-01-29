@@ -3,6 +3,7 @@ from microbit import i2c
 from oled import initialize, clear_oled, add_text
 import neopixel
 from motor_driver import servomotor, dcmotor
+from TempAndHum import TempAndHumInit, ReadTemperature, ReadHumidity
 
 #Pin Defines
 LDR_pin = pin0
