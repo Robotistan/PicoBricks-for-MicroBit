@@ -14,16 +14,12 @@ RGB_pin = pin8
 Relay_pin = pin16
 num_leds = 3
 
-#OLED
+#Init functions
 initialize()
+TempAndHumInit()
 
 #Neopixel
 np = neopixel.NeoPixel(RGB_pin, num_leds)
-
-#Relay
-Relay_pin.write_digital(1)
-sleep(2000)
-Relay_pin.write_digital(0)
 
 #MotorDriver
 #angle must be between 0 and 90
@@ -32,11 +28,29 @@ servomotor(2,90)
 #direction must be 0 or 1. 0 is forward, 1 is backward
 dcmotor(1,255,1)
 
+#Relay
+Relay_pin.write_digital(1)
+sleep(2000)
+Relay_pin.write_digital(0)
+
+clear_oled()
+
 while True:
-    #OLED
-    clear_oled()
+    #Temperature
+    temp = ReadTemperature()
+    #print("Temperature: {:.2f}°C".format(temp))
+
+    #Humidity
+    hum = ReadHumidity()
+    #print("Humidity: {:.2f}%".format(hum))
+    
+    #Oled
     add_text(0, 0, "PicoBricks")
-    sleep(1000)
+    add_text(0, 1, "Temp :")
+    add_text(6,1,str(float(temp)))
+    add_text(0, 2, "Hum :")
+    add_text(6,2,str(float(hum)))
+    sleep(500)
     
     #Neopixel
     np[0] = (0, 0, 255)
@@ -54,8 +68,8 @@ while True:
     
     #Button
     read_button = Button_pin.read_digital()
-    print(read_button)
+    #print(read_button)
 
     #Motion Sensor
     read_motion = Motion_pin.read_digital()
-    print(read_motion)
+    #print(read_motion)
