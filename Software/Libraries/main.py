@@ -4,6 +4,7 @@ from oled import initialize, clear_oled, add_text
 import neopixel
 from motor_driver import servomotor, dcmotor
 from TempAndHum import TempAndHumInit, ReadTemperature, ReadHumidity
+from TouchSensor import touchinit, play_piano
 
 #Pin Defines
 LDR_pin = pin0
@@ -17,6 +18,7 @@ num_leds = 3
 #Init functions
 initialize()
 TempAndHumInit()
+touchinit()
 
 #Neopixel
 np = neopixel.NeoPixel(RGB_pin, num_leds)
@@ -36,20 +38,22 @@ Relay_pin.write_digital(0)
 clear_oled()
 
 while True:
+    display.show(Image.HEART)
+    play_piano()
     #Temperature
-    temp = ReadTemperature()
+    #temp = ReadTemperature()
     #print("Temperature: {:.2f}°C".format(temp))
 
     #Humidity
-    hum = ReadHumidity()
+    #hum = ReadHumidity()
     #print("Humidity: {:.2f}%".format(hum))
     
     #Oled
-    add_text(0, 0, "PicoBricks")
-    add_text(0, 1, "Temp :")
-    add_text(6,1,str(float(temp)))
-    add_text(0, 2, "Hum :")
-    add_text(6,2,str(float(hum)))
+    #add_text(0, 0, "PicoBricks")
+    #add_text(0, 1, "Temp :")
+    #add_text(6,1,str(float(temp)))
+    #add_text(0, 2, "Hum :")
+    #add_text(6,2,str(float(hum)))
     sleep(500)
     
     #Neopixel
