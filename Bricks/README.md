@@ -33,6 +33,14 @@
      ##### Can be used to switch on/off electric devices based on events and sensor values.
 <img src="https://github.com/Robotistan/PicoBricks-for-MicroBit/assets/112697142/3d906281-b177-4bd9-a4cf-c0371eaa8d03" width="620">
 
+- Potentiometer & Button Brick
+     ##### Potentiometer provides analog values 0-1023. Button triggers on/off value.
+<img src="https://github.com/Robotistan/PicoBricks-for-MicroBit/assets/112697142/21f9cf4e-0205-45a2-ae63-8da2fb091494" width="620">
 
+- LDR (Light Detector) Brick
+     ##### Provides ambient light values in the range of 0-100%.
+<img src="https://github.com/Robotistan/PicoBricks-for-MicroBit/assets/112697142/1450ac10-5a70-484c-84d5-9209ea8b8400" width="620">
 
-
+- Gesture Brick
+     ##### Allows detection of hand movements in four directions, up/down proximity, and color values of objects nearby.
+<img src="https://github.com/Robotistan/PicoBricks-for-MicroBit/assets/112697142/0cddb0c8-bab5-4b2a-9505-2dc2350197d2" width="620">
