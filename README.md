@@ -10,6 +10,8 @@
 
 <img src="https://github.com/ozerngg/PicoBricks-for-MicroBit/assets/112697142/d075183d-7668-44ad-8d5a-b173200cf5c7" width="600" height="400">
 
+##### The PicoBricks micro:bit is a special board, built by Robotistan for the education sector, combining a micro:bit and eleven different components on a prewired circuit board design.
+
 
 
 ## [PicoBricks for MicroBit](https://shop.robotistan.com/products/pico-bricks "Heading link")
