@@ -44,3 +44,24 @@
 - Gesture Brick
      ##### Allows detection of hand movements in four directions, up/down proximity, and color values of objects nearby.
 <img src="https://github.com/Robotistan/PicoBricks-for-MicroBit/assets/112697142/0cddb0c8-bab5-4b2a-9505-2dc2350197d2" width="620">
+
+
+- WIFI & IR Sensor Brick
+     ##### IR sensor can decode remote control buttons. ESP01 WIFI can be used to create IoT projects.
+<img src="https://github.com/Robotistan/PicoBricks-for-MicroBit/assets/112697142/c6a639d0-1447-4f98-9328-b85181574e9e" width="620">
+
+- Motor Driver Brick
+     ##### Drives 2xDC and 4xServo motors.
+<img src="https://github.com/Robotistan/PicoBricks-for-MicroBit/assets/112697142/6bbdc3bf-97f3-4ba1-90ed-1f48fa1ccbeb" width="620">
+
+
+
+
+
+
+
+
+
+
+
+
