@@ -17,7 +17,22 @@
 
 <img src="https://github.com/Robotistan/PicoBricks-for-MicroBit/assets/112697142/43de5349-3813-4baf-acad-26612a89b2fe" width="620">
 
+- RGB Brick
+     ##### This small neo-pixel strip can be used to create color combinations by mixing RGB values of 0-255.
+<img src="https://github.com/Robotistan/PicoBricks-for-MicroBit/assets/112697142/40e9f1fd-8aea-40dd-b05a-fb212b6c5d1a" width="620">
 
- 
+- Temperature & Humidity Brick
+     ##### Senses environmental temperature and humidity.
+<img src="https://github.com/Robotistan/PicoBricks-for-MicroBit/assets/112697142/fb1ebda0-c6de-449c-9097-a8bcc2c83859" width="620">
+
+- PIR (Movement Sensor) Brick
+     ##### Passive IR sensor detects movement within its vicinity.
+<img src="https://github.com/Robotistan/PicoBricks-for-MicroBit/assets/112697142/bc4ffdbc-a18f-4c8b-acf9-0f8bc80f5fe8" width="620">
+
+- Relay Brick
+     ##### Can be used to switch on/off electric devices based on events and sensor values.
+<img src="https://github.com/Robotistan/PicoBricks-for-MicroBit/assets/112697142/3d906281-b177-4bd9-a4cf-c0371eaa8d03" width="620">
+
+
 
 
