@@ -1,84 +1,92 @@
 from microbit import *
-from microbit import i2c
-from oled import initialize, clear_oled, add_text
+from picobricks import *
+from touchsensor import *
 import neopixel
-from motor_driver import servomotor, dcmotor
-from TempAndHum import TempAndHumInit, ReadTemperature, ReadHumidity
-from TouchSensor import touchinit, play_piano, piano_touched
+import music
+import gc
 
-#Pin Defines
-LDR_pin = pin0
-Pot_pin = pin1
-Button_pin = pin2
-Motion_pin = pin13
-RGB_pin = pin8
-Relay_pin = pin16
-num_leds = 3
+# Pin Initialization
+LDR_Pin = pin0
+Pot_Pin = pin1
+Button_Pin = pin2
+Motion_Pin = pin13
+RGB_Pin = pin8
+Relay_Pin = pin16
+Num_Leds = 3
 
-#Init functions
-initialize()
-TempAndHumInit()
-touchinit()
-
-#Neopixel
-np = neopixel.NeoPixel(RGB_pin, num_leds)
-
-#MotorDriver
-#angle must be between 0 and 90
-servomotor(2,90)
-#speed must be between 0 and 255
-#direction must be 0 or 1. 0 is forward, 1 is backward
-dcmotor(1,255,1)
+# Function Initialization
+oled = SSD1306()
+oled.init()
+motor = motordriver()
+shtc = SHTC3()
+apds = APDS9960()
+#apds.init_gesture_sensor()
+apds.init_color_sensor()
+gc.collect()
+np = neopixel.NeoPixel(RGB_Pin, Num_Leds)
+pin15.set_pull(pin15.PULL_UP)
+ir = IRM()
+touchsensor = CY8CMBR3116()
+touchsensor.init()
 
 #Relay
-Relay_pin.write_digital(1)
+Relay_Pin.write_digital(1)
 sleep(2000)
-Relay_pin.write_digital(0)
+Relay_Pin.write_digital(0)
 
-clear_oled()
+#Neopixel
+np[0] = (0, 0, 255)
+np[1] = (0, 255, 0)
+np[2] = (255, 0, 0)
+np.show()
+
+motor.servo(1,90)
+motor.dc(1,255,1)
+oled.clear()
 
 while True:
-    display.show(Image.HEART)
+    #color = apds.read_color()
+    #print(color)
+    #gesture = apds.read_gesture()
+    #print(gesture)
 
-    #Touch Sensor
-    #play_piano()
-    #touch = piano_touched("C2") #String
-    #print(touch)
-    
-    #Temperature
-    temp = ReadTemperature()
-    #print("Temperature: {:.2f}°C".format(temp))
+    key=ir.get(pin15)
+    if(key!=-1):
+        print(key)
 
-    #Humidity
-    hum = ReadHumidity()
-    #print("Humidity: {:.2f}%".format(hum))
-    
-    #Oled
-    add_text(0, 0, "PicoBricks")
-    add_text(0, 1, "Temp :")
-    add_text(6,1,str(float(temp)))
-    add_text(0, 2, "Hum :")
-    add_text(6,2,str(float(hum)))
-    sleep(500)
-    
-    #Neopixel
-    np[0] = (0, 0, 255)
-    np[1] = (0, 255, 0)
-    np[2] = (255, 0, 0)
-    np.show()
-    
     #LDR
-    read_ldr = LDR_pin.read_analog()
-    #print(read_ldr)
+    light = LDR_Pin.read_analog()
+    #print(light)
     
     #Pot
-    read_pot = Pot_pin.read_analog()
-    #print(read_pot)
-    
-    #Button
-    read_button = Button_pin.read_digital()
-    #print(read_button)
+    pot = Pot_Pin.read_analog()
+    #print(pot)
 
     #Motion Sensor
-    read_motion = Motion_pin.read_digital()
+    read_motion = Motion_Pin.read_digital()
     #print(read_motion)
+    
+    #Button
+    button = Button_Pin.read_digital()
+    #print(button)
+    if button == 1:
+        music.pitch(440)
+        sleep(500)
+        music.stop()
+
+    #Temperature
+    temp = shtc.temperature()
+    #print(temp)
+
+    #Humidity
+    hum = shtc.humidity()
+    #print(hum)
+
+    oled.add_text(0,0,"Temp:")
+    oled.add_text(6,0,str(float(temp)))
+    oled.add_text(0,1,"Hum:")
+    oled.add_text(6,1,str(float(hum)))
+    oled.add_text(0,2,"Light:")
+    oled.add_text(6,2,str(int(light)))
+    oled.add_text(0,3,"Pot:")
+    oled.add_text(6,3,str(float(pot * 3.3 / 1024))) 
