@@ -232,6 +232,44 @@ class APDS9960:
                 return "green"
             if (blue > red) and (blue > green):
                 return "blue"
+
+    def color_value(self, color):
+        buf[0] = 0x93
+        i2c.write(APDS9960_ADDRESS, buf)
+        data = i2c.read(APDS9960_ADDRESS, 1)
+        if(data == b'\x11'):
+            #Red Values
+            buf[0] = 0x96
+            i2c.write(APDS9960_ADDRESS, buf)
+            RDATAL = i2c.read(APDS9960_ADDRESS, 1)
+            buf[0] = 0x97
+            i2c.write(APDS9960_ADDRESS, buf)
+            RDATAH = i2c.read(APDS9960_ADDRESS, 1)
+            #Green Values
+            buf[0] = 0x98
+            i2c.write(APDS9960_ADDRESS, buf)
+            GDATAL = i2c.read(APDS9960_ADDRESS, 1)
+            buf[0] = 0x99
+            i2c.write(APDS9960_ADDRESS, buf)
+            GDATAH = i2c.read(APDS9960_ADDRESS, 1)
+            #Blue Values
+            buf[0] = 0x9A
+            i2c.write(APDS9960_ADDRESS, buf)
+            BDATAL = i2c.read(APDS9960_ADDRESS, 1)
+            buf[0] = 0x9B
+            i2c.write(APDS9960_ADDRESS, buf)
+            BDATAH = i2c.read(APDS9960_ADDRESS, 1)
+            #Calculate
+            red = RDATAL + RDATAH * 256
+            green = GDATAL + GDATAH * 256
+            blue = BDATAL + BDATAH * 256
+    
+            if (color == "red"):
+                return red
+            if (color == "green"):
+                return green
+            if (color == "blue"):
+                return blue
     
     def init_gesture_sensor(self):
         val[0] = 0x81
@@ -378,7 +416,6 @@ class APDS9960:
                 l_last = l_data[i]
                 r_last = r_data[i]
                 break
-    
     
         # calculate the first vs. last ratio of up/down and left/right
         ud_ratio_first = ((u_first - d_first) * 100) / (u_first + d_first)
