@@ -50,6 +50,10 @@ while True:
     #gesture = apds.read_gesture()
     #print(gesture)
 
+    #HCSR04
+    #distance = measure_distance()
+    #print(distance)
+
     key=ir.get(pin15)
     if(key!=-1):
         print(key)
