@@ -1,6 +1,7 @@
 from microbit import *
 from microbit import i2c, Image
 import machine
+import time
 
 OLED_ADDRESS = 0x3C
 MOTOR_DRIVER_ADDRESS = 0x22
@@ -480,3 +481,27 @@ class APDS9960:
                 return "DOWN"
             else:
                 return "RIGHT"
+
+##########HCSR04 Library##########
+def measure_distance():
+    # Send a 10µs pulse to the trigger to initiate measurement
+    pin2.write_digital(0)
+    time.sleep_us(2)
+    pin2.write_digital(1)
+    time.sleep_us(10)
+    pin2.write_digital(0)
+    
+    # Initialize start and end times
+    start_time = 0
+    end_time = 0
+    
+    # Measure the duration of the echo pulse
+    while pin1.read_digital() == 0:
+        start_time = time.ticks_us()
+    while pin1.read_digital() == 1:
+        end_time = time.ticks_us()
+    
+    # Calculate the distance based on the echo time
+    duration = end_time - start_time
+    distance_cm = (duration / 2) * 0.0343  # Speed of sound is 343 m/s (0.0343 cm/µs)
+    return distance_cm
