@@ -235,43 +235,49 @@ class APDS9960:
                 return "blue"
 
     def color_value(self, color):
+        buf = bytearray(1)  # Initialize buffer for I2C commands
         buf[0] = 0x93
         i2c.write(APDS9960_ADDRESS, buf)
         data = i2c.read(APDS9960_ADDRESS, 1)
-        if(data == b'\x11'):
-            #Red Values
+    
+        if data == b'\x11':
+            # Read Red Values
             buf[0] = 0x96
             i2c.write(APDS9960_ADDRESS, buf)
-            RDATAL = i2c.read(APDS9960_ADDRESS, 1)
+            RDATAL = i2c.read(APDS9960_ADDRESS, 1)[0]
+    
             buf[0] = 0x97
             i2c.write(APDS9960_ADDRESS, buf)
-            RDATAH = i2c.read(APDS9960_ADDRESS, 1)
-            #Green Values
+            RDATAH = i2c.read(APDS9960_ADDRESS, 1)[0]
+    
+            # Read Green Values
             buf[0] = 0x98
             i2c.write(APDS9960_ADDRESS, buf)
-            GDATAL = i2c.read(APDS9960_ADDRESS, 1)
+            GDATAL = i2c.read(APDS9960_ADDRESS, 1)[0]
+    
             buf[0] = 0x99
             i2c.write(APDS9960_ADDRESS, buf)
-            GDATAH = i2c.read(APDS9960_ADDRESS, 1)
-            #Blue Values
+            GDATAH = i2c.read(APDS9960_ADDRESS, 1)[0]
+    
+            # Read Blue Values
             buf[0] = 0x9A
             i2c.write(APDS9960_ADDRESS, buf)
-            BDATAL = i2c.read(APDS9960_ADDRESS, 1)
+            BDATAL = i2c.read(APDS9960_ADDRESS, 1)[0]
+    
             buf[0] = 0x9B
             i2c.write(APDS9960_ADDRESS, buf)
-            BDATAH = i2c.read(APDS9960_ADDRESS, 1)
-            #Calculate
-            red = RDATAL + RDATAH * 256
-            green = GDATAL + GDATAH * 256
-            blue = BDATAL + BDATAH * 256
+            BDATAH = i2c.read(APDS9960_ADDRESS, 1)[0]
     
-            if (color == "red"):
-                return red
-            if (color == "green"):
-                return green
-            if (color == "blue"):
-                return blue
-    
+            # Return the desired color value
+            if color == "red":
+                return RDATAL + RDATAH * 256
+            elif color == "green":
+                return GDATAL + GDATAH * 256
+            elif color == "blue":
+                return BDATAL + BDATAH * 256
+            else:
+                return None  # Return None if the data does not match
+
     def init_gesture_sensor(self):
         val[0] = 0x81
         val[1] = 0xFC
@@ -500,7 +506,7 @@ def measure_distance():
         start_time = time.ticks_us()
     while pin1.read_digital() == 1:
         end_time = time.ticks_us()
-    
+
     # Calculate the distance based on the echo time
     duration = end_time - start_time
     distance_cm = (duration / 2) * 0.0343  # Speed of sound is 343 m/s (0.0343 cm/µs)
