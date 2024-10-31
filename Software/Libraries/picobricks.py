@@ -491,20 +491,20 @@ class APDS9960:
 ##########HCSR04 Library##########
 def measure_distance():
     # Send a 10µs pulse to the trigger to initiate measurement
-    pin2.write_digital(0)
+    pin1.write_digital(0)
     time.sleep_us(2)
-    pin2.write_digital(1)
+    pin1.write_digital(1)
     time.sleep_us(10)
-    pin2.write_digital(0)
+    pin1.write_digital(0)
     
     # Initialize start and end times
     start_time = 0
     end_time = 0
     
     # Measure the duration of the echo pulse
-    while pin1.read_digital() == 0:
+    while pin2.read_digital() == 0:
         start_time = time.ticks_us()
-    while pin1.read_digital() == 1:
+    while pin2.read_digital() == 1:
         end_time = time.ticks_us()
 
     # Calculate the distance based on the echo time
