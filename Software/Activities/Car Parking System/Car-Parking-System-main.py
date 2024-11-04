@@ -6,6 +6,8 @@ motor = motordriver()
 motor.servo(1,90)
 
 while True:
+    distance = measure_distance()
+    #print(distance)
     if round(distance)<6:
         motor.servo(1,180)
         display.show(Image.YES)
