@@ -1,4 +1,4 @@
-#Blink Project
+#Action-Reaction Project
 from microbit import *
 from picobricks import *
 
@@ -44,9 +44,3 @@ while True:
                     display.set_pixel(x, y, 9)
                 else:
                     display.set_pixel(x, y, 0)
-
-        
-        
-        
-    
-    
