@@ -1,4 +1,4 @@
-## Micro:bit Safe Box
+## Safe Box
 The PicoBricks Safe Box is an educational project kit designed to create a safe box that
 automatically locks after assembling the wooden pieces and PicoBricks modulesaccording
 to the installation steps.
