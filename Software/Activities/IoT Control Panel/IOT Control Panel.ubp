@@ -1,0 +1,1108 @@
+module main
+author 'Turgut Guneysu'
+version 1 3 
+choices MuxMenu 'Single Connection' 'Multiple Connections' 
+choices ServerMenu 'Delete Server' 'Create Server' 
+choices ModeMenu Station SoftAP 'Station&SoftAP' 
+description 'ESP01 Demo using RASPICO Board
+Changes: IPD content refresh corrected
+'
+variables savebuffer _linkID _colon _comma _eol _serbuffer ESP01_Log _espBufferDelay _espLoopDelay _espDisplayDelay _espCmdDelay debug TCPprompt ESP01_current_cmd ESP01_LogSize humidity 
+
+  spec ' ' 'ESP01_restore' 'ESP01_restore'
+  spec 'r' 'ESP01_path_of_request' 'ESP01_path_of_request _' 'auto' ''
+  spec 'r' 'ESP01_display_LOG' 'ESP01_display_LOG'
+  spec ' ' '_sendATcmd' '_sendATcmd _ response _ timeout _' 'str str num' 'text' 'OK' 1000
+  spec ' ' 'ESP01_log _' 'ESP01_log _' 'str' 'op result'
+  spec ' ' '_logging _' '_logging _' 'bool' true
+  spec ' ' 'init_ESP01 ssid _ password _' 'init_ESP01 ssid _ password _' 'str str' 'WIFI SSID' 'PASSWORD'
+  spec ' ' 'setESP01UART speed _' 'setESP01UART speed _' 'num' 9600
+  spec ' ' '_doRespCheck' '_doRespCheck'
+  spec ' ' 'TSsend _' 'TSsend _' 'any'
+  spec ' ' 'getResponse' 'getResponse _ _' 'auto auto' '10' '10'
+  spec ' ' 'thingspeak upload WriteAPI _ f1 _ f2 _ f3 _ f4 _ f5 _ f6 _ f7 _ f8 _' 'thingspeak upload WriteAPI _ f1 _ f2 _ f3 _ f4 _ f5 _ f6 _ f7 _ f8 _' 'str auto auto auto auto auto auto auto auto' 'API' '' '' '' '' '' '' '' ''
+
+to ESP01_display_LOG {
+  if (0 == (size ESP01_Log)) {
+    return 'LOG file is empty.'
+  } else {
+    return ('[data:joinStrings]' ESP01_Log _eol)
+  }
+}
+
+to 'ESP01_log _' entry {
+  if debug {
+    '[data:addLast]' entry ESP01_Log
+    if ((size ESP01_Log) > ESP01_LogSize) {
+      '[data:delete]' 1 ESP01_Log
+    }
+  }
+}
+
+to ESP01_path_of_request request {
+  return ('_byteArray2string' ('[data:copyFromTo]' request (('[data:find]' 'GET ' request) + 4) (('[data:find]' ' HTTP' request) - 1)))
+}
+
+to ESP01_restore {
+  comment 'WIFI disconnects, IP:0.0.0.0
+UART:115200,8,1,0,0
+CWMODE:2, CWJAP:noAP, CIPMUX:0
+CIPSTO:180, '
+  ESP01_prev_status = ''
+  comment 'Restores the factory default settings of the module'
+  ESP01_current_cmd = 'RESTORE'
+  '_sendATcmd' 'AT+RESTORE' 10 10
+  waitUntil ESP01_response
+  'ESP01_log _' ('[data:join]' ESP01_current_cmd _colon ESP01_prev_status)
+  cmdComplete = (booleanConstant true)
+}
+
+to 'TSsend _' TSdata {
+  '_sendATcmd' 'AT+CIPSTART="TCP","api.thingspeak.com",80' 'CONNECT' 5000
+  savebuffer = ''
+  _serbuffer = ''
+  '_sendATcmd' ('[data:join]' 'AT+CIPSEND=' (size TSdata)) 'OK' 3000
+  comment 'Get TCP Prompt'
+  '_sendATcmd' TSdata 'SEND OK' 10000
+  getResponse '+IPD' 10000
+  local 'tsFeedNo' ('[data:copyFromTo]' savebuffer (('[data:find]' _colon savebuffer) + 1) (('[data:find]' 'CLOSED' savebuffer) - 1))
+  if (0 == tsFeedNo) {
+    led_displayImage 'no'
+    sayIt ' FAILED.'
+  } (tsFeedNo > 0) {
+    led_displayImage 'yes'
+    sayIt ' OK:' tsFeedNo
+  }
+}
+
+to '_doRespCheck' {
+  _serbuffer = ''
+  repeatUntil (-1 != ('[data:find]' 'OK' _serbuffer)) {
+    _serbuffer = ('[serial:read]')
+    waitMillis 100
+  }
+}
+
+to '_logging _' mode {
+  debug = mode
+}
+
+to '_sendATcmd' cmd resp timeout {
+  comment 'Mandatory 1sec wait after each command.
+Also, TCPSend takes 20ms to send out 
+the buffer if it is shorter than stated length.'
+  callCustomCommand 'getResponse' ('[data:makeList]' resp timeout)
+  cmd = ('[data:join]' cmd _eol)
+  comment 'Non-blocking IO, writes 512 bytes at a time.'
+  local 'i' 1
+  repeatUntil (i >= (size cmd)) {
+    i += ('[serial:writeBytes]' cmd i)
+  }
+  waitMillis 2000
+}
+
+to getResponse response timeout {
+  _serbuffer = ''
+  local 'readBuffer' 0
+  resetTimer
+  repeatUntil (or (-1 != ('[data:find]' response _serbuffer)) ((timer) >= timeout)) {
+    readBuffer = ('[serial:read]')
+    if ((size readBuffer) > 0) {
+      _serbuffer = ('[data:join]' _serbuffer readBuffer)
+      waitMillis 10
+    }
+  }
+  savebuffer = ('[data:join]' '' _serbuffer)
+  'ESP01_log _' savebuffer
+}
+
+to 'init_ESP01 ssid _ password _' ssid password {
+  '_sendATcmd' 'AT+CWMODE=1' 'OK' 1000
+  sayIt 'DONE: mode'
+  '_sendATcmd' ('[data:join]' 'AT+CWJAP="' ssid '","' password '"') 'GOT IP' 5000
+  sayIt 'DONE: ssid'
+  '_sendATcmd' 'AT+CIPSTA?' '+CIPSTA:ip:"' 5000
+  sayIt 'DONE: IPcheck'
+  '_sendATcmd' 'AT+CIPMUX=0' 'OK' 1000
+  sayIt 'DONE: mux'
+}
+
+to 'setESP01UART speed _' baud {
+  comment 'Use with BAUD rates 115200 and 9600 only !
+
+Run initializeAll before this script.
+
+This script assumes:
+- you are switching only between the two speeds mentioned
+- and you are running with one of them already set.
+
+ESP01 RESTORE will default the UART speed to 115200.'
+  _serbuffer = ('[data:newByteArray]' 5)
+  '[serial:open]' baud
+  comment 'Empty UART buffer'
+  repeatUntil (0 == (size _serbuffer)) {
+    _serbuffer = ('[serial:read]')
+  }
+  if (115200 == baud) {
+    '[serial:open]' 9600
+    '_sendATcmd' 'AT+UART_DEF=115200,8,1,0,0' 10 10
+    waitMillis _espCmdDelay
+    'ESP01_log _' ('[data:join]' '' ('[serial:read]'))
+    '[serial:open]' baud
+  } (9600 == baud) {
+    '[serial:open]' 115200
+    '_sendATcmd' 'AT+UART_DEF=9600,8,1,0,0' 10 10
+    waitMillis _espCmdDelay
+    'ESP01_log _' ('[data:join]' '' ('[serial:read]'))
+    '[serial:open]' baud
+  }
+}
+
+to 'thingspeak upload WriteAPI _ f1 _ f2 _ f3 _ f4 _ f5 _ f6 _ f7 _ f8 _' api f1 f2 f3 f4 f5 f6 f7 f8 {
+  if ('API' == api) {
+    sayIt 'Need to provide 
+a Write API from ThingSpeak.'
+    stopTask
+  }
+  local 'data' ''
+  for arg# ('[data:range]' 2 (pushArgCount)) {
+    if (0 != (size (getArg arg#))) {data = ('[data:join]' data '&field' (arg# - 1) '=' (getArg arg#))}
+  }
+  local 'msg' ('[data:join]' 'GET /update?api_key=' api data _eol)
+  'TSsend _' msg
+}
+
+script 164 68 {
+comment 'IOT CONTROL PANEL via THINGSPEAK  (ESP01):
+
+This script is an IOT example using the ESP01 as a WIFI module.
+All ESP01 related scripts are in the My Blocks menu.
+
+This example makes use of the ThingSpeak web site and service to log
+sensor data. The user will need a ThingSpeak account to obtain a write API.
+This API is used in the block to do the updates.
+
+Script will create a station on the user''s Internet subnet.
+
+Fill out the thingspeak block with desired sensor data placed in its parameters.
+Maximum of 8 data values can be logged.
+
+The program will initialize ESP01 and login to the user''s local Internet via WIFI 
+credentials provided. All progress is displayed on the IDE. 
+
+When READY FOR UPDATES message is displayed, press the micro:bit 
+a-button to start the updates. Dont forget that Thingspeak free account update
+frequency is once every 15 seconds.
+
+logging [T/F] block controls recording of transactions and responses
+into the ESP01_Log list. Can be used to learn about the operation of
+the program and debugging.
+
+ESP01 PINS:
+
+-------> ANTENNA (from TOP)
+
+TX *  * GND  -------------- +
+EN *  *                 ===== |
+      *  *                 ===== |
+3V *  *  RX    -------------- +
+
+NOTE: If ESP01 is connected without using the PicoBricks board socket,
+It needs to have the EN pin strapped HIGH to work.
+'
+}
+
+script 640 72 {
+whenStarted
+comment ' ************ SERIAL BAUD RATE ************
+ESP01 baud rate defaults to 115200.
+If you have changed it for some reason, ensure
+that serial open baud is correctly set below.
+
+You can set the ESP01 serial port speed
+using the setESP01UART speed block.
+**************'
+'_pbmb_init_lib'
+ESP01_LogSize = 10
+_colon = ('[data:unicodeString]' 58)
+_comma = ('[data:unicodeString]' 44)
+_eol = ('[data:join]' ('[data:unicodeString]' 13) ('[data:unicodeString]' 10))
+debug = (booleanConstant false)
+ESP01_Log = ('[data:makeList]')
+savebuffer = ''
+TCPprompt = ('[data:join]' 'OK' _eol '>' ('[data:unicodeString]' 32))
+'_logging _' false
+'[serial:open]' 115200
+waitMillis 10
+sayIt 'Preparing ESP01 setup.
+Please wait till next prompt.'
+'init_ESP01 ssid _ password _' 'WIFI SSID' 'PASSWORD'
+sendBroadcast 'go!'
+sayIt 'READY FOR UPDATES'
+}
+
+script 804 78 {
+'setESP01UART speed _' 9600
+}
+
+script 887 696 {
+whenBroadcastReceived 'go!'
+if (not debug) {
+  stopTask
+}
+forever {
+  sayIt (ESP01_display_LOG)
+  waitMillis 1000
+}
+}
+
+script 179 738 {
+whenButtonPressed 'A'
+'thingspeak upload WriteAPI _ f1 _ f2 _ f3 _ f4 _ f5 _ f6 _ f7 _ f8 _' 'API' (pbmb_temperature) (pbmb_humidity) (pbmb_gest_prox) (pbmb_pir) (pbmb_light_sensor) (pbmb_potentiometer) '' ''
+}
+
+
+module 'LED Display' Output
+author MicroBlocks
+version 1 8 
+choices led_imageMenu heart 'small heart' yes no happy sad confused angry asleep surprised silly fabulous meh 't-shirt' 'roller skate' duck house tortoise butterfly 'stick figure' ghost sword giraffe skull umbrella snake rabbit cow 'quarter note' 'eight note' pitchfork target triangle 'left triangle' 'chess board' diamond 'small diamond' square 'small square' scissors 
+description 'Display primitives for the 5x5 LED display on the BBC micro:bit, Calliope mini and M5Atom Matrix. Boards with TFT displays (such as the Citilab ED1 or the M5Stack family) support these primitives with a simulated "fat pixel" display.'
+variables _stop_scrolling_text 
+
+  spec ' ' '[display:mbDisplay]' 'display _' 'microbitDisplay' 15237440
+  spec ' ' 'led_displayImage' 'display image _ : x _ y _' 'menu.led_imageMenu num num' 'happy' 1 1
+  spec ' ' '[display:mbDisplayOff]' 'clear display'
+  space
+  spec ' ' '[display:mbPlot]' 'plot x _ y _' 'num num' 3 3
+  spec ' ' '[display:mbUnplot]' 'unplot x _ y _' 'num num' 3 3
+  space
+  spec ' ' 'displayCharacter' 'display character _' 'str' 'A'
+  spec ' ' 'scroll_text' 'scroll text _ : pausing _ ms' 'str num' 'HELLO ROSA!' 100
+  spec ' ' 'stopScrollingText' 'stop scrolling'
+  space
+  spec ' ' '_set display color' 'set display color _' 'color'
+  space
+  spec 'r' '_led_image' 'led image _' 'microbitDisplay' 15237440
+  spec 'r' '_led_namedImage' '_led_namedImage _' 'menu.led_imageMenu' 'happy'
+  spec 'r' '_led_imageData' '_led_imageData'
+
+to '_led_image' twentyFiveBitInt {
+  comment 'An LED image is a 25-bit integer'
+  return twentyFiveBitInt
+}
+
+to '_led_imageData' {
+  return 'heart:4685802,small heart:145728,yes:2269696,no:18157905,happy:15237440,sad:18284864,confused:22348096,angry:23036241,asleep:459616,surprised:4526090,silly:25984017,fabulous:15008639,meh:2236443,t-shirt:15154043,roller skate:11534104,duck:489702,house:10976708,tortoise:359872,butterfly:29332475,stick figure:18158564,ghost:23068334,sword:4657284,giraffe:10946627,skull:15171246,umbrella:6460398,snake:469859,rabbit:16104613,cow:4685361,quarter note:7573636,eight note:7590276,pitchfork:4357813,target:4681156,triangle:1026176,left triangle:32805985,chess board:11184810,diamond:4539716,small diamond:141440,square:33080895,small square:469440,scissors:20287859,'
+}
+
+to '_led_namedImage' name {
+  local 'data' ('_led_imageData')
+  local 'i' ('[data:find]' name data)
+  if (i == -1) {
+    comment 'Name not found'
+    return 0
+  }
+  local 'start' (('[data:find]' ':' data i) + 1)
+  local 'end' (('[data:find]' ',' data i) - 1)
+  return ('[data:convertType]' ('[data:copyFromTo]' data start end) 'number')
+}
+
+to '_set display color' color {
+  callCustomCommand '[display:mbSetColor]' ('[data:makeList]' color)
+}
+
+to displayCharacter s {
+  s = ('[data:join]' '' s)
+  if ((size s) == 0) {
+    '[display:mbDisplayOff]'
+    return 0
+  }
+  '[display:mbDrawShape]' ('[display:mbShapeForLetter]' (at 1 s))
+}
+
+to led_displayImage imageName optionalX optionalY {
+  local 'image' imageName
+  if (isType image 'string') {
+    image = ('_led_namedImage' imageName)
+  }
+  '[display:mbDrawShape]' image (argOrDefault 2 1) (argOrDefault 3 1)
+}
+
+to scroll_text text optionalDelay {
+  text = ('[data:join]' '' text)
+  local 'delay' 100
+  if ((pushArgCount) > 1) {
+    delay = optionalDelay
+  }
+  _stop_scrolling_text = (booleanConstant false)
+  if ('Pico:ed' == (boardType)) {
+    for position (((size text) * 6) + 18) {
+      if _stop_scrolling_text {return 0}
+      '[display:mbDisplayOff]'
+      '[tft:text]' text (17 - position) 0 (colorSwatch 125 125 125 255) 1 true
+      waitMillis (delay / 2)
+    }
+  } else {
+    for position (((size text) * 6) + 6) {
+      if _stop_scrolling_text {return 0}
+      for i (size text) {
+        '[display:mbDrawShape]' ('[display:mbShapeForLetter]' ('[data:unicodeAt]' i text)) (((i * 6) + 2) - position) 1
+      }
+      waitMillis delay
+    }
+  }
+}
+
+to stopScrollingText {
+  _stop_scrolling_text = (booleanConstant true)
+  waitMillis 10
+  '[display:mbDisplayOff]'
+}
+
+
+module 'Light & Gesture (APDS9960)' Input
+author MicroBlocks
+version 1 0 
+choices apds9960_lightGain '1x' '4x' '16x' '64x' 
+description 'Support for the APDS9960 light, color, and gesture sensor.
+
+The sensor handles a wide range of light values thanks to the ability to change the gain. Its color response is similar to the human eye and it incorporates IR and UV blocking filters. In additional to the light level, it can report the light color as a list of red, green, and blue levels.
+
+The gesture sensor uses reflected infrared light to detect object proximity with a range of a few centimeters. It can also detect the direction of a passing object (e.g. a hand), detecting left, right, up, or down gestures. Gestures can be used to trigger actions in MicroBlocks such as turning some device on and off in response to up and down gestures.'
+variables _apds9960_addr _apds9960_gestureState _apds9960_startLR _apds9960_startUD _apds9960_gesture _apds9960_lastGesture 
+
+  spec 'r' 'apds9960_light' 'apds9960 light'
+  spec 'r' 'apds9960_color' 'apds9960 color'
+  space
+  spec ' ' 'apds9960_setLightGain' 'apds9960 set light gain _' 'menu.apds9960_lightGain' '4x'
+  spec 'r' 'apds9960_lightGain' 'apds9960 light gain'
+  space
+  spec 'r' 'apds9960_proximity' 'apds9960 proximity'
+  space
+  spec 'r' 'apds9960_gestureAvailable' 'apds9960 gesture available'
+  spec 'r' 'apds9960_lastGesture' 'apds9960 last gesture'
+  space
+  spec ' ' '_apds9960_initialize' '_apds9960_initialize'
+  spec ' ' '_apds9960_turnOff' '_apds9960_turnOff'
+  spec ' ' '_apds9960_turnOnWithoutGestures' '_apds9960_turnOnWithoutGestures'
+  spec ' ' '_apds9960_turnOnAll' '_apds9960_turnOnAll'
+  space
+  spec ' ' '_apds9960_enableGestures' '_apds9960 enable gestures'
+  spec ' ' '_apds9960_processGesture' '_apds9960_processGesture'
+  spec ' ' '_apds9960_recognizeGesture' '_apds9960_recognizeGesture _ _' 'num num' 0 0
+  space
+  spec ' ' '_apds9960_unblockStateMachine' '_apds9960_unblockStateMachine'
+  spec 'r' '_apds9960_read16bits' '_apds9960_read16bits reg _' 'num' 0
+
+to '_apds9960_enableGestures' {
+  if (_apds9960_addr == 0) {'_apds9960_initialize'}
+  '_apds9960_turnOff'
+  local 'ggain' 3
+  local 'val' (ggain << 5)
+  local 'gdrive' 0
+  local 'val' (val | (gdrive << 3))
+  local 'gwait' 3
+  local 'val' (val | gwait)
+  i2cSet _apds9960_addr (hexToInt 'A3') val
+  i2cSet _apds9960_addr (hexToInt 'A6') (hexToInt '84')
+  comment 'A non-zero value for _apds9960_gesture indicates that gestures are enabled'
+  _apds9960_gesture = 'none'
+  '_apds9960_turnOnAll'
+}
+
+to '_apds9960_initialize' {
+  _apds9960_addr = (hexToInt '39')
+  '_apds9960_turnOff'
+  comment 'Reg 0x81: Integration time. 224 gives a range of 0 to ~32768 (2^15) in about 90 msecs.'
+  i2cSet _apds9960_addr (hexToInt '81') 224
+  comment 'Reg 0x8E: PPULSE. 0x87 sends 8 16-usec pulses.'
+  i2cSet _apds9960_addr (hexToInt '8E') (hexToInt '87')
+  apds9960_setLightGain '4x'
+  '_apds9960_turnOnWithoutGestures'
+  waitMillis 100
+}
+
+to '_apds9960_processGesture' {
+  if (_apds9960_addr == 0) {'_apds9960_enableGestures'}
+  local 'thresh' 80
+  local 'data' (newList 4)
+  repeatUntil ((i2cGet _apds9960_addr (hexToInt 'AE')) <= 0) {
+    '[sensors:i2cWrite]' _apds9960_addr (hexToInt 'FC')
+    '[sensors:i2cRead]' _apds9960_addr data
+    comment 'These variables reflect the standard orientation of the Databot (USB cable is down).'
+    local 'left' (at 1 data)
+    local 'right' (at 2 data)
+    local 'up' (at 3 data)
+    local 'down' (at 4 data)
+    if (0 == _apds9960_gestureState) {
+      comment 'State 0: idle; all channels below threshold'
+      if (or (or (left > thresh) (right > thresh)) (or (up > thresh) (down > thresh))) {
+        _apds9960_startLR = (right - left)
+        _apds9960_startUD = (down - up)
+        _apds9960_gestureState = 1
+      }
+    } (1 == _apds9960_gestureState) {
+      comment 'State 1: rising; one channel has risen above threshold'
+      if (and (and (left > thresh) (right > thresh)) (and (up > thresh) (down > thresh))) {
+        _apds9960_gestureState = 2
+      }
+    } (2 == _apds9960_gestureState) {
+      comment 'State 2: all channels above threshold'
+      if (or (or (left < thresh) (right < thresh)) (or (up < thresh) (down < thresh))) {
+        '_apds9960_recognizeGesture' (right - left) (down - up)
+        _apds9960_gestureState = 3
+      }
+    } else {
+      comment 'State 3: falling; one channel had fallen below threshold'
+      if (and (and (left < thresh) (right < thresh)) (and (up < thresh) (down < thresh))) {
+        _apds9960_gestureState = 0
+      }
+    }
+  }
+}
+
+to '_apds9960_read16bits' reg {
+  local 'lowByte' (i2cGet _apds9960_addr reg)
+  local 'highByte' (i2cGet _apds9960_addr (reg + 1))
+  return ((highByte << 8) | lowByte)
+}
+
+to '_apds9960_recognizeGesture' endLR endUD {
+  local 'minChange' 10
+  local 'totalLR' (absoluteValue (_apds9960_startLR - endLR))
+  local 'totalUP' (absoluteValue (_apds9960_startUD - endUD))
+  if (totalLR > totalUP) {
+    if (totalLR < minChange) {return}
+    if ((_apds9960_startLR - endLR) < 0) {
+      _apds9960_gesture = 'left'
+    } else {
+      _apds9960_gesture = 'right'
+    }
+  } else {
+    if (totalUP < minChange) {return}
+    if ((_apds9960_startUD - endUD) < 0) {
+      _apds9960_gesture = 'down'
+    } else {
+      _apds9960_gesture = 'up'
+    }
+  }
+}
+
+to '_apds9960_turnOff' {
+  i2cSet _apds9960_addr (hexToInt '80') 0
+}
+
+to '_apds9960_turnOnAll' {
+  i2cSet _apds9960_addr (hexToInt '80') (64 | 7)
+}
+
+to '_apds9960_turnOnWithoutGestures' {
+  i2cSet _apds9960_addr (hexToInt '80') 7
+}
+
+to '_apds9960_unblockStateMachine' {
+  comment 'If an object is close to the sensor, the state machine
+remains in gesture mode. This will unblock it, freeing
+the sensor to update the light and color readings.'
+  i2cSet _apds9960_addr (hexToInt 'AB') 0
+}
+
+to apds9960_color {
+  if (_apds9960_addr == 0) {'_apds9960_initialize'}
+  '_apds9960_unblockStateMachine'
+  local 'r' ('_apds9960_read16bits' (hexToInt '96'))
+  local 'g' ('_apds9960_read16bits' (hexToInt '98'))
+  local 'b' ('_apds9960_read16bits' (hexToInt '9A'))
+  return ('[data:makeList]' r g b)
+}
+
+to apds9960_gestureAvailable {
+  if (0 == _apds9960_gesture) {'_apds9960_enableGestures'}
+  '_apds9960_processGesture'
+  _apds9960_lastGesture = _apds9960_gesture
+  _apds9960_gesture = 'none'
+  if ('none' == _apds9960_lastGesture) {
+    return false
+  }
+  return true
+}
+
+to apds9960_lastGesture {
+  if (0 == _apds9960_lastGesture) {return 'none'}
+  return _apds9960_lastGesture
+}
+
+to apds9960_light {
+  if (_apds9960_addr == 0) {'_apds9960_initialize'}
+  '_apds9960_unblockStateMachine'
+  return ('_apds9960_read16bits' (hexToInt '94'))
+}
+
+to apds9960_lightGain gain {
+  if (_apds9960_addr == 0) {'_apds9960_initialize'}
+  local 'gainSetting' ((i2cGet _apds9960_addr (hexToInt '8F')) & 3)
+  return (1 << (2 * gainSetting))
+}
+
+to apds9960_proximity {
+  if (_apds9960_addr == 0) {'_apds9960_initialize'}
+  '_apds9960_unblockStateMachine'
+  return (i2cGet _apds9960_addr (hexToInt '9C'))
+}
+
+to apds9960_setLightGain gain {
+  if (_apds9960_addr == 0) {'_apds9960_initialize'}
+  local 'drive' 0
+  if ('1x' == gain) {
+    drive = 0
+  } ('4x' == gain) {
+    drive = 1
+  } ('16x' == gain) {
+    drive = 2
+  } ('64x' == gain) {
+    drive = 3
+  }
+  local 'val' (i2cGet _apds9960_addr (hexToInt '8F'))
+  val = ((val & 252) | (drive & 3))
+  i2cSet _apds9960_addr (hexToInt '8F') val
+}
+
+
+module 'Misc Primitives'
+author MicroBlocks
+version 1 4 
+description 'Miscellaneous system primitives.
+'
+
+  spec ' ' 'noop' 'no op'
+  spec ' ' 'ignoreArgs' 'ignore : _ : ...' 'auto' 0
+  space
+  spec 'r' 'pushArgCount' 'arg count'
+  spec 'r' 'getArg' 'arg _' 'num' 0
+  space
+  spec 'r' 'longMult' '( _ * _ ) >> _' 'num num num' 1024 2048 10
+  spec 'r' '[misc:sin]' 'fixed sine _' 'num' 9000
+  spec 'r' '[misc:atan2]' 'arctan x _ y _' 'num num' 1 1
+  space
+  spec 'r' '[misc:pressureToAltitude]' 'altitude diff for pressure change from _ to _' 'num num' 30 29
+  spec 'r' '[misc:bme680GasResistance]' 'bme680 gas resistance adc _ range _ calibration range error  _' 'num num num' 500 0 0
+  space
+  spec ' ' '[misc:broadcastToIDE]' 'broadcast _ to IDE only' 'str' ''
+  space
+  spec ' ' '[display:mbEnableDisplay]' 'enable LED display _' 'bool' false
+
+module 'PicoBricks-mb'
+author MicroBlocks
+version 0 85 
+depends 'IR Motion (PIR)' 'IR Remote' 'Light & Gesture (APDS9960)' NeoPixel 'Temperature Humidity (SHTC3)' Tone 
+choices servoNumMenu 'S1:3' 'S2:4' 'S3:5' 'S4:6' ALL 
+choices dcNumMenu 'M1:1' 'M2:2' ALL 
+choices configMenu 'ALL:FF,7F' 'X&Y Only:07,00' 'Arrows Only:F1,00' 'Keyboard Only:09,7F' 'X&Y and Arrows Only:F7,00' 
+choices touchMenu ANY X Y Up Right Down Left c d e f g a b c1 
+choices dcDirMenu 'Fwd:0' 'Bwd:1' 
+description 'Robotistan PicoBricks Library 
+*** micro:bit version ***
+
+This library controls these PicoBricks components:
+
+- Temperature and humidity (SHTC3) I2C:0x70
+- IR Motion (PIR)
+- Relay Switch (5V-250V, 5A)
+- 2xDC & 4xSERVO Motors (HK32F030) I2C:0x22
+- IR Remote 
+- Light & Gesture (APDS9960) I2C:0x39
+- Light sensor (Light Dependent Resistor)
+- Potentiometer (variable resistor)
+- Button on POT
+- 14ch TOUCH Panel (CY8CMBR3116) I2C:0x37
+
+Use separate libraries to control:
+- LED Display
+- NeoPixel WS2812 3xRGB LED
+- OLED Graphic display (TFT or OLED Libs)
+- WIFI-ESP01 expansion board
+
+See https://www.robotistan.com, 
+https://wiki.microblocks.fun/en/picobricks,
+https://github.com/Robotistan/picobricks-for-microbit-ext/tree/master
+
+CHANGES:
+- updated Config process, less displays, error codes in _pbmb_current_config
+- faster and smaller dec2hex with pad
+- name changes
+- auto config detect
+- force string for hex2dec for config 
+- adjust startup "invalid config"
+- change key and gesture names to camelcase
+- SERVO range 0-193 (internal)
+- Block Config changes on micro:bit v1
+- Change buttons to X&Y
+- dec2hex name correction
+- stop touch on error
+- ignore touch not in table
+- synch to R
+- remove micro:bit v1 ConfigChange restriction
+- c1 correction
+- config change bug correction
+- motor command displays off
+'
+variables _pbmb_initialized _pbmb_pin_Button _pbmb_pin_Relay _pbmb_pin_Pot _pbmb_pin_LDR _pbmb_pin_Buzzer _pbmb_pin_RGB_LED _pbmb_pin_TX _pbmb_pin_RX _pbmb_motor_i2c _pbmb_touch_i2c _pbmb_pin_PIR _pbmb_pin_IRrecv i2cStat _pbmb_touched i2cBuffer _pbmb_kvTable _pbmb_lastKeyTouched _pbmb_current_config _pbmb_config_completed _pbmb_crcTable _pbmb_configNames _pbmb_configTable option 
+
+  space
+  spec 'r' 'pbmb_humidity' 'PicoBricks-mb humidity'
+  spec 'r' 'pbmb_temperature' 'PicoBricks-mb temperature (°C)'
+  spec 'r' 'pbmb_pir' 'PicoBricks-mb PIR detected'
+  spec ' ' 'pbmb_set_relay' 'PicoBricks-mb set relay _' 'bool' true
+  space
+  spec ' ' 'pbmb_set_motor_speed' 'PicoBricks-mb set motor _ speed _ (0-255) dir _' 'menu.dcNumMenu num menu.dcDirMenu' 1 128 0
+  spec ' ' 'pbmb_set_servo_angle' 'PicoBricks-mb set servo _ angle _ (0-180)' 'menu.servoNumMenu num' 1 90
+  space
+  spec 'r' 'pbmb_ir_code_received' 'PicoBricks-mb IR Code Received?'
+  spec 'r' 'pbmb_ir_code' 'PicoBricks-mb IR Code'
+  spec 'r' 'pbmb_ir_recv_code' 'PicoBricks-mb Receive IR Code'
+  space
+  spec 'r' 'pbmb_gest_color' 'PicoBricks-mb GS Color : as color# _' 'bool' false
+  spec 'r' 'pbmb_gest_avail' 'PicoBricks-mb GS Detected'
+  spec 'r' 'pbmb_gest_lastgest' 'PicoBricks-mb GS Last Gesture'
+  spec 'r' 'pbmb_gest_light' 'PicoBricks-mb GS Light'
+  spec 'r' 'pbmb_gest_prox' 'PicoBricks-mb GS Proximity'
+  space
+  spec 'r' 'pbmb_light_sensor' 'PicoBricks-mb light sensor (0-100) %'
+  spec 'r' 'pbmb_potentiometer' 'PicoBricks-mb Potentiometer'
+  spec 'r' 'pbmb_button' 'PicoBricks-mb Pot Button'
+  space
+  spec 'r' 'pbmb key _ pressed' 'PicoBricks-mb Touchkey _ pressed ?' 'menu.touchMenu' 'ANY'
+  spec 'r' 'pbmb Last key touched' 'PicoBricks-mb Last key touched'
+  space
+  spec ' ' '_pbmb_init_lib' '_PicoBricks-mb init Library'
+  spec ' ' '_pbmb_wakeup' '_PicoBricks-mb WakeUp'
+  spec ' ' '_pbmb_configureTouch' '_PicoBricks-mb configure Touch Options _' 'menu.configMenu' 'FF,7F'
+  spec ' ' '_pbmb_Config-2' '_Config-2'
+  spec ' ' '_pbmb_Config-3' '_Config-3'
+  spec ' ' '_pbmb_read_ConfigRegs' '_pbmb_read_ConfigRegs'
+  spec 'r' '_pbmb_Config&CRC' '_PicoBricks-mb show Touch Config&CRC'
+  spec 'r' '_pbmb_dec2hex' '_pbmb_dec2hex _ Pad _' 'num num' 0 2
+  spec ' ' '_pbmb_config_initTables' '_pbmb_config_initTables'
+
+to '_pbmb_Config&CRC' {
+  comment 'OK'
+  '_pbmb_config_initTables'
+  '_pbmb_read_ConfigRegs'
+  if (_pbmb_current_config != 0) {
+    local 'idx' ('[data:find]' _pbmb_current_config _pbmb_configTable)
+  } else {
+    local 'crc' ('[data:join]' (at 127 i2cBuffer) ',' (at 128 i2cBuffer))
+    local 'idx' ('[data:find]' crc _pbmb_crcTable)
+  }
+  if (-1 != idx) {
+    _pbmb_current_config = (at idx _pbmb_configTable)
+    local 'config' (at idx _pbmb_configNames)
+  } else {
+    comment 'Config search Failed...
+variable config contains an Error message.'
+    local 'config' 'Unrecognized Config.'
+  }
+  local 'crc' ('[data:join]' 'CRC: ' '0x' ('_pbmb_dec2hex' (at 127 i2cBuffer) 2) ', ' '0x' ('_pbmb_dec2hex' (at 128 i2cBuffer) 2) '  (' (at 127 i2cBuffer) ', ' (at 128 i2cBuffer) ')')
+  return ('[data:join]' 'Config: ' config ('[data:unicodeString]' 10) crc)
+}
+
+to '_pbmb_Config-2' {
+  comment 'I2C write 128 byte CONFIG @ memory 0'
+  _pbmb_touch_i2c = (hexToInt '37')
+  '_pbmb_wakeup'
+  local 'idx' 1
+  for reg ('[data:range]' 0 127) {
+    i2cSet _pbmb_touch_i2c reg (at idx i2cBuffer)
+    idx += 1
+  }
+  sayIt 'CONFIG Written' idx
+  '_pbmb_Config-3'
+}
+
+to '_pbmb_Config-3' {
+  comment 'Wait till processor is ready.'
+  _pbmb_touch_i2c = (hexToInt '37')
+  waitUntil (0 == (i2cGet _pbmb_touch_i2c (hexToInt '86')))
+  comment 'CTRL_CMD / SAVE_CHECK_CRC '
+  i2cSet _pbmb_touch_i2c (hexToInt '86') 2
+  sayIt 'CONFIG2EEPROM attempted.'
+  waitMillis 300
+  comment 'CTRL_CMD Error check:
+0: Command was successful
+253: Write to flash failed
+254: Stored configuration CRC checksum (in CONFIG_CRC register) did not match 
+calculated configuration CRC checksum
+255: Invalid command '
+  i2cStat = ('[data:makeList]' 44)
+  '[sensors:i2cWrite]' _pbmb_touch_i2c ('[data:makeList]' (hexToInt '89'))
+  '[sensors:i2cRead]' _pbmb_touch_i2c i2cStat
+  if ('0' == ('[data:joinStrings]' i2cStat)) {
+    comment 'Wait till processor is ready.'
+    waitUntil (0 == (i2cGet _pbmb_touch_i2c (hexToInt '86')))
+    comment 'CTRL_CMD / SW_RESET '
+    i2cSet _pbmb_touch_i2c (hexToInt '86') 255
+    waitMillis 500
+    _pbmb_config_completed = (booleanConstant true)
+    sayIt 'CONFIG Successful...'
+  } ('254' == ('[data:joinStrings]' i2cStat)) {
+    sayIt 'CRC ERROR: Correcting'
+    waitMillis 500
+    comment 'Write CRC into CONFIG 0x7E, 0x7F'
+    atPut 127 i2cBuffer (i2cGet _pbmb_touch_i2c (hexToInt '94'))
+    atPut 128 i2cBuffer (i2cGet _pbmb_touch_i2c (hexToInt '95'))
+    '_pbmb_Config-2'
+  } else {
+    sayIt 'ERROR: Aborting'
+    _pbmb_config_completed = ('[data:join]' 'Error: ' ('[data:joinStrings]' i2cStat))
+  }
+}
+
+to '_pbmb_config_initTables' {
+  _pbmb_configNames = ('[data:makeList]' 'ALL' 'X&Y Only' 'Arrows Only' 'Keyboard Only' 'X&Y and Arrows Only')
+  _pbmb_configTable = ('[data:makeList]' 'FF,7F' '07,00' 'F1,00' '09,7F' 'F7,00')
+  _pbmb_crcTable = ('[data:makeList]' '135,4' '50,139' '104,197' '221,74' '77,84')
+  _pbmb_kvTable = ('[data:makeList]' 'X' '2,0' 'Y' '4,0' 'Up' '16,0' 'Right' '32,0' 'Down' '64,0' 'Left' '128,0' 'c' '8,0' 'd' '0,64' 'e' '0,32' 'f' '0,16' 'g' '0,8' 'a' '0,4' 'b' '0,2' 'c2' '0,1' 'None' '0,0')
+}
+
+to '_pbmb_configureTouch' option {
+  comment '*** DO NOT make a Config change with any of the Touch blocks running ***
+
+128 Byte CONFIG Register settings:
+
+FIRST 126 bytes are CONFIG DATA (starts with Options)
+Last 2 bytes are CRC.
+CRC is initially 00,00.
+It is calculated by the sensor during the config process based on the options selected
+and adjusted (Config-3).
+
+*** WARNING ***
+DO NOT CHANGE VALUES BELOW UNLESS YOU ARE SURE ABOUT THEIR
+MEANING AND REGISTER LOCATIONS.
+'
+  local 'configData' ('[data:joinStrings]' ('[data:split]' option ','))
+  configData = ('[data:join]' configData 'FE7F00000000000000000E848484848484848484848484848484030000000000000000000181060000FFF002000000000000000000000000000000000000')
+  comment 'I2CAddr is byte# 82 = 0x37
+CRC-16 : LAST TWO hex-BYTES below'
+  configData = ('[data:join]' configData '00FFFFFFFFFFFFFFFF0000000003015800370600000A000000000000000000000000000000000000000000000000000000000000000000000000000000000000')
+  local 'idx' 1
+  i2cBuffer = ('[data:newByteArray]' 128)
+  for i ('[data:range]' 1 (size configData) 2) {
+    atPut idx i2cBuffer (hexToInt ('[data:copyFromTo]' configData i (i + 1)))
+    idx += 1
+  }
+  sayIt 'I2Cbuffer Ready.'
+  '_pbmb_Config-2'
+  waitUntil (_pbmb_config_completed != (booleanConstant false))
+  if _pbmb_config_completed {
+    _pbmb_current_config = option
+  } else {
+    comment '_pbmb_current_config contains ERROR info'
+  }
+}
+
+to '_pbmb_dec2hex' num pad {
+  comment 'Fast version w/o inversion. (~115uSecs)'
+  local '_hexTbl' '0123456789ABCDEF'
+  local 'hexNum' ''
+  repeatUntil (num < 0) {
+    if ((num / 16) != 0) {
+      hexNum = ('[data:join]' (at ((num % 16) + 1) _hexTbl) hexNum)
+      num = (num / 16)
+    } else {
+      hexNum = ('[data:join]' (at ((num % 16) + 1) _hexTbl) hexNum)
+      num = -1
+    }
+  }
+  comment 'If not half-byte length, pad it.'
+  repeatUntil (((size hexNum) % pad) == 0) {
+    hexNum = ('[data:join]' '0' hexNum)
+  }
+  return hexNum
+}
+
+to '_pbmb_init_lib' {
+  comment 'OK'
+  comment 'Touch sensor remembers previous config and starts with it
+upon power on. 
+
+Current running Config can be displayed with 
+show Touch Config&CRC block; and changed with 
+configure Touch Options.
+'
+  if _pbmb_initialized {
+    return
+  }
+  '_pbmb_config_initTables'
+  _pbmb_motor_i2c = 34
+  _pbmb_touch_i2c = 55
+  _pbmb_pin_RGB_LED = 8
+  neoPixelAttach 3 _pbmb_pin_RGB_LED
+  _pbmb_pin_Button = 2
+  _pbmb_pin_PIR = 13
+  _pbmb_pin_Relay = 16
+  _pbmb_pin_Pot = 1
+  _pbmb_pin_LDR = 0
+  _pbmb_pin_IRrecv = 15
+  attachIR _pbmb_pin_IRrecv
+  if ((boardType) == 'micro:bit v2') {
+    _pbmb_pin_Buzzer = 27
+    'attach buzzer to pin' _pbmb_pin_Buzzer
+    _pbmb_pin_TX = 14
+    _pbmb_pin_RX = 15
+    '[serial:close]'
+    callCustomCommand '[serial:setPins]' ('[data:makeList]' 15 14)
+  }
+  _pbmb_initialized = (booleanConstant true)
+}
+
+to '_pbmb_read_ConfigRegs' {
+  comment 'OK'
+  _pbmb_touch_i2c = (hexToInt '37')
+  '_pbmb_wakeup'
+  comment 'I2C read only reads 32 bytes !!!!'
+  i2cBuffer = ('[data:makeList]')
+  i2cStat = (newList 32 99)
+  for i ('[data:makeList]' 0 32 64 96) {
+    '[sensors:i2cWrite]' _pbmb_touch_i2c ('[data:makeList]' i)
+    '[sensors:i2cRead]' _pbmb_touch_i2c i2cStat
+    i2cBuffer = ('[data:join]' i2cBuffer i2cStat)
+  }
+  i2cBuffer = ('[data:asByteArray]' i2cBuffer)
+  sayIt 'CONFIG copied into i2cBuffer'
+}
+
+to '_pbmb_wakeup' {
+  comment 'WAKE UP'
+  _pbmb_touch_i2c = (hexToInt '37')
+  repeat 4 {
+    i2cStat = (i2cGet _pbmb_touch_i2c 0)
+  }
+}
+
+to 'pbmb Last key touched' {
+  comment 'OK'
+  if (not _pbmb_initialized) {
+    '_pbmb_init_lib'
+  }
+  return _pbmb_lastKeyTouched
+}
+
+to 'pbmb key _ pressed' touchKey {
+  comment 'OK: non-looping version'
+  if (not _pbmb_initialized) {
+    '_pbmb_init_lib'
+  }
+  comment 'Read TOUCH Status'
+  local 'buttonStat' 0
+  _pbmb_touched = (newList 1)
+  '_pbmb_wakeup'
+  '[sensors:i2cWrite]' _pbmb_touch_i2c ('[data:makeList]' (hexToInt 'AE'))
+  '[sensors:i2cRead]' _pbmb_touch_i2c _pbmb_touched
+  if (255 == (at 1 _pbmb_touched)) {
+    comment '255 = I2C error occurred.'
+    _pbmb_touched = (booleanConstant false)
+    stopTask
+  } else {
+    _pbmb_touched = ('[data:convertType]' (at 1 _pbmb_touched) 'boolean')
+  }
+  comment 'Read Button Status'
+  buttonStat = (newList 2)
+  '[sensors:i2cWrite]' _pbmb_touch_i2c ('[data:makeList]' (hexToInt 'AA'))
+  '[sensors:i2cRead]' _pbmb_touch_i2c buttonStat
+  if _pbmb_touched {
+    local 'touchVal' ('[data:joinStrings]' buttonStat ',')
+    local 'idx' ('[data:find]' touchVal _pbmb_kvTable)
+    if (-1 != idx) {
+      _pbmb_lastKeyTouched = (at (idx - 1) _pbmb_kvTable)
+    } else {
+      return (booleanConstant false)
+    }
+    if ('ANY' == touchKey) {
+      comment 'This check has to happen after the key name is determined.'
+      return (booleanConstant true)
+    } else {
+      if (touchVal == (at (('[data:find]' touchKey _pbmb_kvTable) + 1) _pbmb_kvTable)) {
+        return (booleanConstant true)
+      } else {
+        return (booleanConstant false)
+      }
+    }
+  } else {
+    return (booleanConstant false)
+  }
+}
+
+to pbmb_beep duration {
+  comment 'OK'
+  if (not _pbmb_initialized) {
+    '_pbmb_init_lib'
+  }
+  '[io:playTone]' _pbmb_pin_Buzzer 300
+  waitMillis duration
+  '[io:playTone]' _pbmb_pin_Buzzer 0
+}
+
+to pbmb_button {
+  comment 'OK'
+  if (not _pbmb_initialized) {
+    '_pbmb_init_lib'
+  }
+  return (digitalReadOp _pbmb_pin_Button)
+}
+
+to pbmb_gest_avail {
+  comment 'OK'
+  return (apds9960_gestureAvailable)
+}
+
+to pbmb_gest_color colorNum {
+  comment 'OK'
+  local 'color' (apds9960_color)
+  local 'r' (at 1 color)
+  local 'g' (at 2 color)
+  local 'b' (at 3 color)
+  if colorNum {
+    color = ((r << 16) + ((g << 8) + b))
+  }
+  return color
+}
+
+to pbmb_gest_lastgest {
+  comment 'OK'
+  comment 'GESTURE Transpose:
+For correct lookup, names have to be different.
+left =  Up
+right =  Down
+down = Left
+up = Right
+'
+  local 'transposeTable' ('[data:makeList]' 'down' 'Left' 'left' 'Up' 'right' 'Down' 'up' 'Right' 'none' 'None')
+  return (at (('[data:find]' (apds9960_lastGesture) transposeTable) + 1) transposeTable)
+}
+
+to pbmb_gest_light {
+  comment 'OK'
+  return (apds9960_light)
+}
+
+to pbmb_gest_prox {
+  comment 'OK'
+  return (apds9960_proximity)
+}
+
+to pbmb_humidity {
+  comment 'OK'
+  if (not _pbmb_initialized) {
+    '_pbmb_init_lib'
+  }
+  return (shtc3_humidity)
+}
+
+to pbmb_ir_code {
+  comment 'OK'
+  if (not _pbmb_initialized) {
+    '_pbmb_init_lib'
+  }
+  return (ir_last_code)
+}
+
+to pbmb_ir_code_received {
+  comment 'OK'
+  if (not _pbmb_initialized) {
+    '_pbmb_init_lib'
+  }
+  return (ir_code_received)
+}
+
+to pbmb_ir_recv_code {
+  comment 'OK'
+  if (not _pbmb_initialized) {
+    '_pbmb_init_lib'
+  }
+  return (receiveIR)
+}
+
+to pbmb_light_sensor {
+  comment 'OK'
+  comment 'Returns Light Values s a percentage:
+0: dark ,  100: light'
+  if (not _pbmb_initialized) {
+    '_pbmb_init_lib'
+  }
+  return ('[misc:rescale]' (analogReadOp _pbmb_pin_LDR) 0 1023 100 0)
+}
+
+to pbmb_pir {
+  comment 'OK'
+  if (not _pbmb_initialized) {
+    '_pbmb_init_lib'
+  }
+  return (PIR _pbmb_pin_PIR)
+}
+
+to pbmb_potentiometer {
+  comment 'OK'
+  if (not _pbmb_initialized) {
+    '_pbmb_init_lib'
+  }
+  return (analogReadOp _pbmb_pin_Pot)
+}
+
+to pbmb_set_motor_speed which speed dir {
+  comment 'OK'
+  comment 'WORKING Motor Control
+Does not drive single motor @ 60 and below
+and dual motors @128 and below'
+  if (not _pbmb_initialized) {
+    '_pbmb_init_lib'
+  }
+  speed = (maximum 0 (minimum speed 255))
+  if ('ALL' == which) {
+    local 'from' 1
+    local 'to' 2
+  } else {
+    local 'from' which
+    local 'to' which
+  }
+  for i ('[data:range]' from to) {
+    '[sensors:i2cWrite]' _pbmb_motor_i2c ('[data:asByteArray]' ('[data:makeList]' (hexToInt '26') i speed dir ((i ^ speed) ^ dir)))
+  }
+}
+
+to pbmb_set_relay aBoolean {
+  comment 'OK'
+  if (not _pbmb_initialized) {
+    '_pbmb_init_lib'
+  }
+  digitalWriteOp _pbmb_pin_Relay aBoolean
+}
+
+to pbmb_set_servo_angle which angle {
+  comment 'OK'
+  comment 'WORKING Servo Control
+Can drive +13 degrees for adjustment.'
+  if (not _pbmb_initialized) {
+    '_pbmb_init_lib'
+  }
+  angle = (maximum 0 (minimum angle 193))
+  if ('ALL' == which) {
+    local 'from' 3
+    local 'to' 6
+  } else {
+    local 'from' which
+    local 'to' which
+  }
+  for i ('[data:range]' from to) {
+    '[sensors:i2cWrite]' _pbmb_motor_i2c ('[data:asByteArray]' ('[data:makeList]' (hexToInt '26') i 0 angle (i ^ angle)))
+    waitMillis 75
+  }
+}
+
+to pbmb_temperature {
+  comment 'OK'
+  if (not _pbmb_initialized) {
+    '_pbmb_init_lib'
+  }
+  return (shtc3_temperature)
+}
+
