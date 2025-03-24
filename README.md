@@ -5,6 +5,7 @@
 [![Documentation Status](https://readthedocs.org/projects/robotistan/badge/?version=latest)](https://docs.picobricks.com/en/latest/?badge=latest)
 [![Creative Commons ][cc-by-nc-sa-shield]][cc-by-nc-sa] 
 
+Click [here](https://github.com/Robotistan/PicoBricks) to visit the PicoBricks for Raspberry Pi Pico GitHub page.
 
 # Dream, Code, Play
 
