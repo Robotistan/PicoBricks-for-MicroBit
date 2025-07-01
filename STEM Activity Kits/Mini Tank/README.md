@@ -1,4 +1,4 @@
-## Mini Tank
+## Mars Explorer Kit
 Tanks, with their tracked structures, are vehicles that can easily move on rough terrains.
 Tracks consist of multiple sequential wheels or rollers surrounded by a belt.
 The PicoBricks Mars Explorer Car is a wooden project kit that utilizes two DC motors and
